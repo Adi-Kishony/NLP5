@@ -1,13 +1,13 @@
 import spacy
 import wikipedia
 
-def extract_pos_triplets(page_content):
+def extract_pos_triplets(page_content, nlp):
     """
     Extract triplets based on POS tags.
     :param page_content: Text content from a Wikipedia page.
     :return: List of triplets (Subject, Relation, Object).
     """
-    nlp = spacy.load("en_core_web_sm")
+
     doc = nlp(page_content)
     triplets = []
 
@@ -38,13 +38,12 @@ def extract_pos_triplets(page_content):
 
     return triplets
 
-def extract_dependency_triplets(page_content):
+def extract_dependency_triplets(page_content, nlp):
     """
     Extract triplets based on dependency trees.
     :param page_content: Text content from a Wikipedia page.
     :return: List of triplets (Subject, Relation, Object).
     """
-    nlp = spacy.load("en_core_web_sm")
     doc = nlp(page_content)
     triplets = []
 
@@ -81,16 +80,17 @@ def extract_dependency_triplets(page_content):
 def main():
     # Example Wikipedia pages
     pages = ["Donald Trump", "Ruth Bader Ginsburg", "J. K. Rowling"]
+    nlp = spacy.load("en_core_web_sm")
     for page in pages:
         print(f"Processing page: {page}")
         content = wikipedia.page(page).content
 
         # Extract triplets based on POS tags
-        pos_triplets = extract_pos_triplets(content)
+        pos_triplets = extract_pos_triplets(content, nlp)
         print(f"POS-based triplets for {page}:\n", pos_triplets)
 
         # Extract triplets based on dependency trees
-        dep_triplets = extract_dependency_triplets(content)
+        dep_triplets = extract_dependency_triplets(content, nlp)
         print(f"Dependency-based triplets for {page}:\n", dep_triplets)
 
 if __name__ == "__main__":
