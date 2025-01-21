@@ -19,10 +19,10 @@ def pos_tag_based_extractor(text, nlp):
             subject = token.text
             for j in range(i + 1, len(doc)):
                 if doc[j].pos_ == "PROPN":
-                    # Check for intermediate tokens
-                    relation_tokens = [t for t in doc[i+1:j] if t.pos_ not in ["PUNCT"]]
-                    if any(t.pos_ == "VERB" for t in relation_tokens):
-                        relation = " ".join([t.text for t in relation_tokens if t.pos_ in ["VERB", "ADP"]])
+                    # Ensure no punctuation between the proper nouns
+                    if all(t.pos_ != "PUNCT" for t in doc[i + 1:j]):
+                        relation_tokens = [t for t in doc[i + 1:j] if t.pos_ in ["VERB", "ADP"]]
+                        relation = " ".join([t.text for t in relation_tokens])
                         obj = doc[j].text
                         triplets.append((subject, relation, obj))
                         break
