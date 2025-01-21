@@ -18,17 +18,25 @@ def pos_tag_based_extractor(text, nlp):
         if token.pos_ == "PROPN":
             subject = token.text
             for j in range(i + 1, len(doc)):
+                if doc[j].pos_ == "PUNCT":
+                    break
                 if doc[j].pos_ == "PROPN":
-                    # Ensure no punctuation between the proper nouns
-                    if all(t.pos_ != "PUNCT" for t in doc[i + 1:j]):
-                        relation_tokens = [t for t in doc[i + 1:j] if t.pos_ in ["VERB", "ADP"]]
-                        relation = " ".join([t.text for t in relation_tokens])
+                    contains_verb = False
+                    relation_tokens = []
+                    for k in range(i + 1, j):
+                        if doc[k].pos_ == "VERB":
+                            contains_verb = True
+                        if doc[k].pos_ in ["VERB", "ADP"]:
+                            relation_tokens.append(doc[k])
+                    relation = " ".join([t.text for t in relation_tokens])
+                    if contains_verb:
                         obj = doc[j].text
                         triplets.append((subject, relation, obj))
                         break
     return triplets
 
 def dependency_tree_based_extractor(text, nlp):
+    #TODO - verfify this
     doc = nlp(text)
     triplets = []
 
