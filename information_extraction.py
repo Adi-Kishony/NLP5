@@ -65,15 +65,15 @@ def main():
     pages = ["Donald Trump", "Ruth Bader Ginsburg", "J. K. Rowling"]
 
     for page in pages:
-        print(f"Processing Wikipedia page: {page}")
+        print(f"\nProcessing Wikipedia page: {page}")
         content = get_wikipedia_page_content(page)
 
-        print("\nPOS Tag-Based Extractor Results:")
         pos_results = pos_tag_based_extractor(content, nlp)
+        print(f"\nPOS Tag-Based Extractor Results: number of triplets {len(pos_results)}")
         print(pos_results[:5])  # Display a few results
 
-        print("\nDependency Tree-Based Extractor Results:")
         dep_results = dependency_tree_based_extractor(content, nlp)
+        print(f"\nDependency Tree-Based Extractor Results: number of triplets {len(dep_results)}")
         print(dep_results[:5])  # Display a few results
 
 if __name__ == "__main__":
