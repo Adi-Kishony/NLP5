@@ -1,6 +1,6 @@
 import wikipedia
 import spacy
-
+import random
 def setup_nlp():
     # Load SpaCy model
     return spacy.load("en_core_web_sm")
@@ -70,10 +70,12 @@ def main():
 
         pos_results = pos_tag_based_extractor(content, nlp)
         print(f"\nPOS Tag-Based Extractor Results: number of triplets {len(pos_results)}")
-        print(pos_results[:5])  # Display a few results
+        print(random.sample(pos_results, 5)) # Display a few random results
+        #print(pos_results[:5])  # Display a few results
 
         dep_results = dependency_tree_based_extractor(content, nlp)
         print(f"\nDependency Tree-Based Extractor Results: number of triplets {len(dep_results)}")
+        print(random.sample(dep_results, 5))  # Display a few random results
         print(dep_results[:5])  # Display a few results
 
 if __name__ == "__main__":
