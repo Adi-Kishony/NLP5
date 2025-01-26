@@ -43,7 +43,6 @@ def pos_tag_based_extractor(text, nlp):
 
 
 def dependency_tree_based_extractor(text, nlp):
-    # TODO - verfify this
     doc = nlp(text)
     triplets = []
 
@@ -71,25 +70,50 @@ def dependency_tree_based_extractor(text, nlp):
 
 
 
-def call_large_language_model(text_and_triplets, model_gemini):
+def call_large_language_model(wiki_page, triplets, model_gemini):
     validated_triplets = []
     print("\nValidating triplets with LLM:")
-    for page, content in text_and_triplets.items():
-        triplets, wiki_page = content
-        for triplet in triplets:
-            prompt = f"Determine (answer only yesy or no) if the following relationship triplet is valid based on the supplied text:\n text: {wiki_page}\n," \
-                     f" Subject: {triplet[0]} Relation: {triplet[1]}, Object: {triplet[2]}"
-            try:
-                response = model_gemini.generate_content(prompt)
-                print(response.text)
-                is_valid = "yes" in response["text"].strip().lower()
-                print(f"Triplet: {triplet}, Valid: {is_valid}")
-                if is_valid:
+
+    # Start a chat and send the Wikipedia page content once
+    chat = model_gemini.start_chat(
+        history=[
+            {"role": "user", "parts": "Hello"},
+            {"role": "model", "parts": "Great to meet you. What would you like to know?"},
+        ]
+    )
+
+    chat.send_message(f"Here is the text for reference:\n{wiki_page}")
+
+    batch_size = 10  # Validate in batches to reduce the number of API calls
+    for i in range(7):
+        batch = triplets[i*batch_size:i*batch_size+batch_size]
+        triplets_text = "\n".join(
+            [f"Triplet {idx+1}: Subject: {t[0]}, Relation: {t[1]}, Object: {t[2]}" for idx, t in enumerate(batch)]
+        )
+        try:
+            response = chat.send_message(
+                f"Determine (answer only yes or no) if the following relationship triplets are valid based on the supplied text:\n{triplets_text}",
+                stream=True
+            )
+
+            # Collect and process response
+            result = ""
+            for chunk in response:
+                result += chunk.text
+            print(f"Batch Response: {result.strip()}")
+
+            # Parse responses for each triplet
+            responses = result.strip().split("\n")
+            for triplet, res in zip(batch, responses):
+                if "yes" in res.lower():
                     validated_triplets.append(triplet)
-            except Exception as e:
-                print(f"Error validating triplet {triplet}: {e}")
-    print(f"percentage of validated triplets: {len(validated_triplets)/len(triplets)*100}%")
+
+        except Exception as e:
+            print(f"Quota exceeded. Skipping remaining triplets in this batch, {e}")
+            break  # Exit loop if quota is exhausted
+
     return validated_triplets
+
 
 
 
@@ -123,13 +147,18 @@ def main():
     # Validate triplets with LLM
     genai.configure(api_key="AIzaSyCE8xkfcHo7BPBrYRBmtzcw4Sb8bXngS2Q")
     model = genai.GenerativeModel("gemini-1.5-flash")
+
+
     print("\nValidating POS Tag-Based Extractor Triplets with LLM")
-    validated_pos_triplets = call_large_language_model(text_and_triplets_pos, model)
+    validated_pos_triplets = call_large_language_model(text_and_triplets_pos[page][1], text_and_triplets_pos[page][0], model)
     print(f"\nValidated POS Triplets: {validated_pos_triplets}")
 
+
     print("\nValidating Dependency Tree-Based Extractor Triplets with LLM")
-    validated_dep_triplets = call_large_language_model(text_and_triplets_tree, model)
+    validated_dep_triplets = call_large_language_model(text_and_triplets_pos[page][1], text_and_triplets_pos[page][0], model)
     print(f"\nValidated Dependency Triplets: {validated_dep_triplets}")
+
+    # TODO: for each of the models give gemini the text and the triplets we found and tell it to identify relationship we didnt find - 2 calls
 
 
 if __name__ == "__main__":
