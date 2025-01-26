@@ -1,10 +1,10 @@
 import wikipedia
 import spacy
 import random
-import openai
+import gemini
 
-# Set your OpenAI API key
-openai.api_key = "your-api-key"
+# Set your Gemini API key
+gemini.api_key = "your-api-key"
 
 def setup_nlp():
     # Load SpaCy model
@@ -78,12 +78,11 @@ def call_large_language_model(triplets):
     for triplet in triplets:
         prompt = f"Determine if the following triplet is valid based on general knowledge: Subject: {triplet[0]}, Relation: {triplet[1]}, Object: {triplet[2]}"
         try:
-            response = openai.Completion.create(
-                engine="text-davinci-003",
+            response = gemini.Completion.create(
                 prompt=prompt,
                 max_tokens=50
             )
-            is_valid = "yes" in response.choices[0].text.strip().lower()
+            is_valid = "yes" in response["text"].strip().lower()
             print(f"Triplet: {triplet}, Valid: {is_valid}")
             if is_valid:
                 validated_triplets.append(triplet)
@@ -100,25 +99,6 @@ def manual_verification(triplets):
         if is_valid == "yes":
             valid_count += 1
     print(f"Valid triplets: {valid_count}/{len(triplets)}")
-
-
-# def main():
-#     nlp = setup_nlp()
-#
-#     # Define Wikipedia pages for analysis
-#     pages = ["Donald Trump", "Ruth Bader Ginsburg", "J. K. Rowling"]
-#
-#     for page in pages:
-#         print(f"\nProcessing Wikipedia page: {page}")
-#         content = get_wikipedia_page_content(page)
-#
-#         pos_results = pos_tag_based_extractor(content, nlp)
-#         print(f"\nPOS Tag-Based Extractor Results: number of triplets {len(pos_results)}")
-#         print(pos_results[:5])  # Display a few results
-#
-#         dep_results = dependency_tree_based_extractor(content, nlp)
-#         print(f"\nDependency Tree-Based Extractor Results: number of triplets {len(dep_results)}")
-#         print(dep_results[:5])  # Display a few results
 
 def main():
     nlp = setup_nlp()
@@ -149,6 +129,26 @@ def main():
     print("\nValidating Dependency Tree-Based Extractor Triplets with LLM")
     validated_dep_triplets = call_large_language_model(random.sample(all_dep_triplets, min(15, len(all_dep_triplets))))
     print(f"\nValidated Dependency Triplets: {validated_dep_triplets}")
+
+
+# def main():
+#     nlp = setup_nlp()
+#
+#     # Define Wikipedia pages for analysis
+#     pages = ["Donald Trump", "Ruth Bader Ginsburg", "J. K. Rowling"]
+#
+#     for page in pages:
+#         print(f"\nProcessing Wikipedia page: {page}")
+#         content = get_wikipedia_page_content(page)
+#
+#         pos_results = pos_tag_based_extractor(content, nlp)
+#         print(f"\nPOS Tag-Based Extractor Results: number of triplets {len(pos_results)}")
+#         print(pos_results[:5])  # Display a few results
+#
+#         dep_results = dependency_tree_based_extractor(content, nlp)
+#         print(f"\nDependency Tree-Based Extractor Results: number of triplets {len(dep_results)}")
+#         print(dep_results[:5])  # Display a few results
+
 
 
 if __name__ == "__main__":
