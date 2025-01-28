@@ -4,7 +4,6 @@ import random
 import google.generativeai as genai
 
 
-
 def setup_nlp():
     # Load SpaCy model
     return spacy.load("en_core_web_sm")
@@ -69,8 +68,15 @@ def dependency_tree_based_extractor(text, nlp):
     return triplets
 
 
+def get_triplets_text(triplets):
+    return "\n".join(
+        [
+            f"Triplet {idx + 1}: Subject: {t[0]}, Relation: {t[1]}, Object: {t[2]}"
+            for idx, t in enumerate(triplets)]
+    )
 
-def evalutae_model_percision(wiki_page, triplets, model_gemini):
+
+def evaluate_model_precision(wiki_page, triplets, model_gemini):
     validated_triplets = []
     print("\nValidating triplets with LLM:")
 
@@ -78,47 +84,58 @@ def evalutae_model_percision(wiki_page, triplets, model_gemini):
     chat = model_gemini.start_chat(
         history=[
             {"role": "user", "parts": "Hello"},
-            {"role": "model", "parts": "Great to meet you. What would you like to know?"},
+            {"role": "model",
+             "parts": "Great to meet you. What would you like to know?"},
         ]
     )
 
     chat.send_message(f"Here is the text for reference:\n{wiki_page}")
-
-    batch_size = 10  # Validate in batches to reduce the number of API calls
+    num_triplets_validated = 0
+    batch_size = 12  # Validate in batches to reduce the number of API calls
     for i in range(6):
-        batch = triplets[i*batch_size:i*batch_size+batch_size]
-        triplets_text = "\n".join(
-            [f"Triplet {idx+1}: Subject: {t[0]}, Relation: {t[1]}, Object: {t[2]}" for idx, t in enumerate(batch)]
-        )
+        if i * batch_size + batch_size >= len(triplets):
+            break
+        batch = triplets[i * batch_size:i * batch_size + batch_size]
+        triplets_text = get_triplets_text(batch)
         try:
             response = chat.send_message(
-                f"Determine (answer only yes or no) if the following relationship triplets are valid based on the supplied text:\n{triplets_text}",
+                f"Determine (answer only yes or no) if the following "
+                f"relationship triplets are valid based on the supplied text:\n{triplets_text}",
                 stream=True
             )
-
+            print(f"\nBatch triplets:\n {triplets_text}")
             # Collect and process response
             result = ""
             for chunk in response:
                 result += chunk.text
-            print(f"Batch Response: {result.strip()}")
+            print(f"\nBatch Response:\n {result.strip()}")
 
             # Parse responses for each triplet
             responses = result.strip().split("\n")
-            for triplet, res in zip(batch, responses):
+            for triplet, res, triplet_sent in zip(batch, responses):
+                num_triplets_validated += 1
                 if "yes" in res.lower():
                     validated_triplets.append(triplet)
 
         except Exception as e:
-            print(f"Quota exceeded. Skipping remaining triplets in this batch, {e}")
+            print(
+                f"Quota exceeded. Skipping remaining triplets in this batch, {e}")
             break  # Exit loop if quota is exhausted
-
+    print(f"Percentage of correctly extracted triplets: {len(validated_triplets) / num_triplets_validated * 100:.2f}%")
     return validated_triplets
 
+
 def evaluate_model_recall(wiki_page, triplets, model_gemini):
-    pass
+    prompt = f"Given this wikipedia page, and the following relationship " \
+             f"triplets, can you provide only the relationships in the " \
+             f"text that we did not find, for each one display it in a separate" \
+             f" line wiki page mention only relations that appear in the text:" \
+             f"\n Text: {wiki_page}\nTriplets: {get_triplets_text(triplets)}\n"
 
-
-
+    response = model_gemini.generate_content(prompt)
+    missed_relations = response.count('\n')
+    print(f"Percentage of relations we missed: {missed_relations / (len(triplets) + missed_relations) * 100:.2f}%")
+    print(response.text)
 
 
 def main():
@@ -145,7 +162,7 @@ def main():
         print(
             f"\nDependency Tree-Based Extractor Results: number of triplets {len(dep_results)}")
         print(random.sample(dep_results, 5))  # Display a few random results
-        #print(dep_results[:5])  # Display a few results
+        # print(dep_results[:5])  # Display a few results
         text_and_triplets_tree[page] = (dep_results, content)
 
     # Validate triplets with LLM
@@ -155,27 +172,25 @@ def main():
     page = "Donald Trump"
 
     # test percentage correctly extracted triplets relation:
+    print(f"\nTesting Precision POS Tag-Based Extractor Triplets with LLM "
+          f"of page {page}")
+    validated_pos_triplets = evaluate_model_precision(
+        text_and_triplets_pos[page][1], text_and_triplets_pos[page][0], model)
 
-    print("\nValidating POS Tag-Based Extractor Triplets with LLM")
-    validated_pos_triplets = evalutae_model_percision(text_and_triplets_pos[page][1], text_and_triplets_pos[page][0], model)
-
-
-    print("\nValidating Dependency Tree-Based Extractor Triplets with LLM")
-    validated_dep_triplets = evalutae_model_percision(text_and_triplets_pos[page][1], text_and_triplets_pos[page][0], model)
-
-
+    print(f"\nTesting Precision Tree-Based Extractor Triplets with LLM of page {page}")
+    validated_dep_triplets = evaluate_model_precision(
+        text_and_triplets_pos[page][1], text_and_triplets_pos[page][0], model)
 
     # test percentage relations we missed
-    print("\nValidating POS Tag-Based Extractor missed Triplets with LLM")
-    validated_pos_triplets = evaluate_model_recall(text_and_triplets_pos[page][1], text_and_triplets_pos[page][0],
-                                                   model)
+    print(f"\nTesting Recall POS Tag-Based Extractor missed Triplets with LLM page {page}")
+    evaluate_model_recall(
+        text_and_triplets_pos[page][1], text_and_triplets_pos[page][0],
+        model)
 
-    print("\nValidating Dependency Tree-Based Extractor missed Triplets with LLM")
-    validated_dep_triplets = evaluate_model_recall(text_and_triplets_pos[page][1], text_and_triplets_pos[page][0], model)
-
-
-
-    # TODO: for each of the models give gemini the text and the triplets we found and tell it to identify relationship we didnt find - 2 calls
+    print(
+        f"\nTesting Recall Tree-Based Extractor missed Triplets with LLM page {page}")
+    evaluate_model_recall(
+        text_and_triplets_pos[page][1], text_and_triplets_pos[page][0], model)
 
 
 if __name__ == "__main__":
