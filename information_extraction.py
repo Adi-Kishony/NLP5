@@ -70,7 +70,7 @@ def dependency_tree_based_extractor(text, nlp):
 
 
 
-def call_large_language_model(wiki_page, triplets, model_gemini):
+def evalutae_model_percision(wiki_page, triplets, model_gemini):
     validated_triplets = []
     print("\nValidating triplets with LLM:")
 
@@ -85,7 +85,7 @@ def call_large_language_model(wiki_page, triplets, model_gemini):
     chat.send_message(f"Here is the text for reference:\n{wiki_page}")
 
     batch_size = 10  # Validate in batches to reduce the number of API calls
-    for i in range(7):
+    for i in range(6):
         batch = triplets[i*batch_size:i*batch_size+batch_size]
         triplets_text = "\n".join(
             [f"Triplet {idx+1}: Subject: {t[0]}, Relation: {t[1]}, Object: {t[2]}" for idx, t in enumerate(batch)]
@@ -113,6 +113,10 @@ def call_large_language_model(wiki_page, triplets, model_gemini):
             break  # Exit loop if quota is exhausted
 
     return validated_triplets
+
+def evaluate_model_recall(wiki_page, triplets, model_gemini):
+    pass
+
 
 
 
@@ -148,15 +152,28 @@ def main():
     genai.configure(api_key="AIzaSyCE8xkfcHo7BPBrYRBmtzcw4Sb8bXngS2Q")
     model = genai.GenerativeModel("gemini-1.5-flash")
 
+    page = "Donald Trump"
+
+    # test percentage correctly extracted triplets relation:
 
     print("\nValidating POS Tag-Based Extractor Triplets with LLM")
-    validated_pos_triplets = call_large_language_model(text_and_triplets_pos[page][1], text_and_triplets_pos[page][0], model)
-    print(f"\nValidated POS Triplets: {validated_pos_triplets}")
+    validated_pos_triplets = evalutae_model_percision(text_and_triplets_pos[page][1], text_and_triplets_pos[page][0], model)
 
 
     print("\nValidating Dependency Tree-Based Extractor Triplets with LLM")
-    validated_dep_triplets = call_large_language_model(text_and_triplets_pos[page][1], text_and_triplets_pos[page][0], model)
-    print(f"\nValidated Dependency Triplets: {validated_dep_triplets}")
+    validated_dep_triplets = evalutae_model_percision(text_and_triplets_pos[page][1], text_and_triplets_pos[page][0], model)
+
+
+
+    # test percentage relations we missed
+    print("\nValidating POS Tag-Based Extractor missed Triplets with LLM")
+    validated_pos_triplets = evaluate_model_recall(text_and_triplets_pos[page][1], text_and_triplets_pos[page][0],
+                                                   model)
+
+    print("\nValidating Dependency Tree-Based Extractor missed Triplets with LLM")
+    validated_dep_triplets = evaluate_model_recall(text_and_triplets_pos[page][1], text_and_triplets_pos[page][0], model)
+
+
 
     # TODO: for each of the models give gemini the text and the triplets we found and tell it to identify relationship we didnt find - 2 calls
 
