@@ -112,7 +112,7 @@ def evaluate_model_precision(wiki_page, triplets, model_gemini):
 
             # Parse responses for each triplet
             responses = result.strip().split("\n")
-            for triplet, res, triplet_sent in zip(batch, responses):
+            for triplet, res in zip(batch, responses):
                 num_triplets_validated += 1
                 if "yes" in res.lower():
                     validated_triplets.append(triplet)
@@ -133,7 +133,7 @@ def evaluate_model_recall(wiki_page, triplets, model_gemini):
              f"\n Text: {wiki_page}\nTriplets: {get_triplets_text(triplets)}\n"
 
     response = model_gemini.generate_content(prompt)
-    missed_relations = response.count('\n')
+    missed_relations = response.text.count('\n')
     print(f"Percentage of relations we missed: {missed_relations / (len(triplets) + missed_relations) * 100:.2f}%")
     print(response.text)
 
