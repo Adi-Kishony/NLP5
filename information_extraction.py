@@ -125,7 +125,7 @@ def evaluate_model_precision(wiki_page, triplets, model_gemini):
     return validated_triplets
 
 
-def evaluate_model_recall(wiki_page, triplets, model_gemini):
+def evaluate_model_misses(wiki_page, triplets, model_gemini):
     prompt = f"Given this wikipedia page, and the following relationship " \
              f"triplets, can you provide only the relationships in the " \
              f"text that we did not find, for each one display it in a separate" \
@@ -183,13 +183,13 @@ def main():
 
     # test percentage relations we missed
     print(f"\nTesting Recall POS Tag-Based Extractor missed Triplets with LLM page {page}")
-    evaluate_model_recall(
+    evaluate_model_misses(
         text_and_triplets_pos[page][1], text_and_triplets_pos[page][0],
         model)
 
     print(
         f"\nTesting Recall Tree-Based Extractor missed Triplets with LLM page {page}")
-    evaluate_model_recall(
+    evaluate_model_misses(
         text_and_triplets_pos[page][1], text_and_triplets_pos[page][0], model)
 
 

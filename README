@@ -1,0 +1,4 @@
+Question 1 is implemented in the function pos_tag_based_extractor
+Question 2 is implemented in the function dependency_tree_based_extractor
+And question 4 in implemented in the functions evaluate_model_misses and
+evaluate_model_precision
